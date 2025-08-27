@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Transmissão Ao Vivo</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
+    h1 { color: #222; }
+    video, iframe { width: 100%; height: 500px; border: none; margin-top: 20px; }
+    #match-list { margin-top: 20px; }
+    button { padding: 10px; margin: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Transmissão Ao Vivo - Partidas Disponíveis</h1>
+  <div id="match-list">Carregando partidas...</div>
+  <div id="player-container"></div>
+
+  <script>
+    const apiHost = 'https://adstrim.live';
+
+    async function fetchMatches() {
+      try {
+        const res = await fetch(`${apiHost}/api/matches/upcoming`);
+        const matches = await res.json();
+
+        if (!Array.isArray(matches) || matches.length === 0) {
+          document.getElementById('match-list').innerHTML = 'Nenhuma partida disponível.';
+          return;
+        }
+
+        const matchListDiv = document.getElementById('match-list');
+        matchListDiv.innerHTML = '<h3>Escolha uma partida para assistir:</h3>';
+
+        matches.forEach((match) => {
+          const home = match.home_team || 'Time A';
+          const away = match.away_team || 'Time B';
+
+          const btn = document.createElement('button');
+          btn.innerText = `${home} x ${away}`;
+          btn.onclick = () => showStream(match);
+          matchListDiv.appendChild(btn);
+        });
+      } catch (err) {
+        document.getElementById('match-list').innerHTML = 'Erro ao buscar partidas.';
+        console.error('Erro ao buscar partidas:', err);
+      }
+    }
+
+    function showStream(match) {
+      let streamHtml = '';
+      try {
+        if (!match.stream_urls) {
+          streamHtml = 'Essa partida não possui transmissões disponíveis.';
+        } else {
+          const streams = JSON.parse(match.stream_urls);
+          if (streams.length > 0) {
+            const streamUrl = streams[0].url;
+
+            if (streamUrl.includes('m3u8') || streamUrl.includes('.mp4')) {
+              streamHtml = `<video controls autoplay><source src="${streamUrl}" type="application/x-mpegURL"></video>`;
+            } else {
+              streamHtml = `<iframe src="${streamUrl}" allowfullscreen></iframe>`;
+            }
+          } else {
+            streamHtml = 'Nenhuma stream disponível para essa partida.';
+          }
+        }
+      } catch (e) {
+        streamHtml = 'Erro ao carregar a stream.';
+        console.error(e);
+      }
+      document.getElementById('player-container').innerHTML = streamHtml;
+    }
+
+    fetchMatches();
+  </script>
+</body>
+</html>
